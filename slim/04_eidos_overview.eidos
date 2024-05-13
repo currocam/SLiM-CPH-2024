@@ -1,0 +1,21 @@
+muts = sim.mutations
+size(muts)
+muts[0].str()
+positions = muts.position
+size(positions)
+which(positions<10e3)
+mean(positions<10e3)
+muts[which(positions<10e3)]
+muts[positions<10e3]
+
+// Get < 10e3 & after 9900
+muts[muts.position < 10e3 & muts.originTick > 9900]
+x = 1:10
+index = c(T, F, T, T, F, F, F, T, F, T)
+x[!index]
+
+
+muts[muts.position < 10e3 & !(muts.originTick > 9900)].originTick
+
+s = sample(sim.mutations, 20)
+s.setSelectionCoeff(0.05)
