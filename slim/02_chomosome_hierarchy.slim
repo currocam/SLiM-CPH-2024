@@ -1,0 +1,43 @@
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	// m2 mutation type: beneficial, low dominance coefficient, from exponential DFE
+	initializeMutationType("m2", 0.1, "e", 0.1);
+	// m3 mutation type: deleterious, low dominance, from -Gamma(0.03, 0.2)
+	// Automatically flips the sign !!!
+	initializeMutationType("m3", 0.2, "g", -0.03, 0.2);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	// g2 genomic element type: genic region with neutral, deleterious & beneficial
+	// Computes fractions automatically!!!
+	// On average, 1 beneficial per each 10 deleterious and 100 neutral
+	initializeGenomicElementType("g2", c(m1, m2, m3), c(100, 1, 10));
+	// g3 genomic element type: intron neutral & deleterious
+	initializeGenomicElementType("g3", c(m1, m3), c(0.90, 0.10));
+
+	
+	// Chromosome with alternating coding & non-coding regions
+	initializeGenomicElement(g1, 0, 2e4-1);
+	initializeGenomicElement(g2, 2e4, 3e4-1);
+	initializeGenomicElement(g1, 3e4, 6e4-1);
+	initializeGenomicElement(g2, 6e4, 65e3-1);
+	initializeGenomicElement(g3, 65e3, 7e4-1);
+	initializeGenomicElement(g2, 7e4, 8e4-1);
+	initializeGenomicElement(g1, 8e4, 1e5-1);
+
+	initializeRecombinationRate(1e-8);
+}
+
+// create a population of 500 individuals
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+
+// output samples of 10 genomes periodically, all fixed mutations at end
+1000 late() { p1.outputSample(10); }
+2000 late() { p1.outputSample(10); }
+5000 late() { sim.outputFixedMutations(); }
