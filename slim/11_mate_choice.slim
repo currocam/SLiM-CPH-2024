@@ -1,0 +1,49 @@
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0); // neutral
+	initializeMutationType("m2", 0.5, "f", -0.025); // ornamental
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", c(m1, m2), c(100, 1));
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+
+//mateChoice() {
+//	fixedMuts = sum(sim.substitutions.mutationType == m2);
+//	for (attemp in 1:5)
+//	{
+//		mate = sample(p1.individuals, 1, T, weights);
+//		
+//		if (runif(1) < mate.tagF + attemp*0.1)
+//			return mate;
+//	}
+//	return float(0);
+//}
+
+s1 mateChoice() {
+	return weights*sim.getValue("attractiveness");
+}
+
+
+
+// create a population of 500 individuals
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+
+1:10001 early() {
+	inds = p1.individuals;
+	osize = p1.individuals.countOfMutationsOfType(m2);
+	if (sum(osize) == 0.0)
+		s1.active = 0;
+	sim.setValue("attractiveness", log(osize + 1) * 0.1);
+	
+	if (sim.cycle % 1e3 == 1){
+		catn(sim.cycle + ": Mean ornament size = " + mean(osize));
+	}
+
+}

@@ -1,0 +1,35 @@
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.5);
+	m2.convertToSubstitution=F;
+	m2.color="red";
+	initializeMutationType("m3", 0.5, "f", 0.5);
+	m3.convertToSubstitution=F;
+	m3.color="cyan";
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);	
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+
+modifyChild() {
+	//return !all(child.genomes.containsMutations(c(locusA, locusB)));
+	genomes = child.genomes;
+	countA = sum(genomes.countOfMutationsOfType(m2));
+	countB = sum(genomes.countOfMutationsOfType(m3));
+	return countA + countB < 4;
+}
+
+
+// create a population of 500 individuals
+1 early() {
+	sim.addSubpop("p1", 500);
+	defineConstant("locusA", sample(p1.genomes, 20).addNewDrawnMutation(m2, 10000));
+	defineConstant("locusB", sample(p1.genomes, 20).addNewDrawnMutation(m3, 20000));
+}
+
+10000 late() { sim.outputFixedMutations(); }

@@ -1,0 +1,73 @@
+function (void)dumpFrequencies(object<Mutation> muts) {
+	if(muts.size())
+	{
+		freqs = sim.mutationFrequencies(NULL, muts);
+		coeffs = muts.selectionCoeff;
+		catn();
+		print(cbind(freqs, coeffs));
+	}
+	
+}
+
+
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "n", 0.0, 0.5); // QTLs
+	m2.convertToSubstitution=F;
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g2", c(m1, m2), c(0.9, 0.1));	
+	initializeGenomicElement(g1, 0, 2e4-1);
+	initializeGenomicElement(g2, 2e4, 3e4-1);
+	initializeGenomicElement(g1, 3e4, 5e4);
+	initializeRecombinationRate(1e-8);
+	defineConstant("N", 500);
+	defineGlobal("optimum", 0);
+}
+mutationEffect(m2) {return 1.0;}
+
+modifyChild() {
+	additive = child.sumOfMutationsOfType(m2);
+	distance = (optimum-additive);
+	distance = distance > 0 ? min(distance, 0.1) else max(-distance, -0.1);
+	child.tagF = distance;
+	return T;
+}
+
+
+1 early() {	sim.addSubpop("p1", N);}
+
+1: late() {
+	defineGlobal("optimum", (floor(sim.cycle / 1e4) % 2) * 10.0);
+	inds = sim.subpopulations.individuals;
+	
+	additive = 	inds.sumOfMutationsOfType(m2);
+	noise = rnorm(N, 0, 2);
+	phenotypes = additive + noise + inds.tagF;
+	heritability = var(additive) / var(phenotypes); 
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optimum, 5.0) * 10.0;
+	
+	mean_phenotype = mean(phenotypes);
+	
+//	if (abs(mean_phenotype - 10.0) < 0.1)
+//	{
+//		catn();
+//		catn(sim.cycle + ": REACHED OPTIMUM");
+//		dumpFrequencies(sim.mutationsOfType(m2));
+//		sim.simulationFinished();
+//	}
+	
+	if (sim.cycle %100 == 0)
+	{
+		catn(sim.cycle + ": Mean phenotype = " + mean_phenotype + ", opt= " + optimum);
+		catn("Heritability = " + heritability);
+	}	
+}
+
+
+200000 late() {
+	catn("\n DID NOT REACH OPTIMUM");
+	dumpFrequencies(sim.mutationsOfType(m2));
+}

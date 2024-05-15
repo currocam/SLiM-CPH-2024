@@ -1,0 +1,57 @@
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.01);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	// Conditional model
+	defineConstant("SIM_ID", getSeed());
+	defineGlobal("nTries", 0);
+}
+
+// create a population of 500 individuals
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+
+1e3 late() {
+	defineGlobal("nTries", nTries+1);
+	target = sample(p1.genomes, 1);
+	defineConstant("SWEEP", sample(sim.mutations, 1));
+	SWEEP.setMutationType(m2);
+	SWEEP.setSelectionCoeff(0.01);
+	defineConstant("CHECKPOINT", tempdir() + "slim_" + SIM_ID + ".txt");
+	sim.outputFull(CHECKPOINT);
+}
+1e3:1e6 late() {
+	if (SWEEP.isFixed)
+	{
+		cat(SIM_ID + ": FIXED\n", error=T);
+		catn(nTries);
+		sim.simulationFinished();
+	}
+	if (!SWEEP.isSegregating)
+	{
+		cat(SIM_ID + ": LOST - RESTARTING\n", error=T);
+		sim.readFromPopulationFile(CHECKPOINT);
+		defineConstant("SWEEP", sim.mutationsOfType(m2));
+		defineGlobal("nTries", nTries+1);
+	}
+	freq = sim.mutationFrequencies(NULL, SWEEP);
+	catn(sim.cycle + ": " + freq, error=T);
+}
+
+// output samples of 10 genomes periodically, all fixed mutations at end
+1e6 late() {
+	catn("TIME EXPIRED", error = T);
+	sim.simulationFinished(); 
+}
